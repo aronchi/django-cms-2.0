@@ -167,18 +167,21 @@ The model would look something like this:
         
         def get_absolute_url(self):
             return reverse('category_view', args=[self.pk])
+            
+        def get_menu_title(self):
+        	return self.get_title()
         
-        try:
-            mptt.register(Category)
-        except mptt.AlreadyRegistered:
-            pass
+    try:
+		mptt.register(Category)
+	except mptt.AlreadyRegistered:
+        pass
 
 It is encouraged to use [django-mptt](http://code.google.com/p/django-mptt/) (a
 suitable version is included in the `mptt` directory) for the tree
 structure because of performance considerations.
 The objects provided must adhere to the following structure:
 
-Each must have a `get_title` function, a `get_absolute_url` function, and a
+Each must have a `get_title` and a `get_menu_title` function, a `get_absolute_url` function, and a
 `childrens`* array with all of its children inside (the 's' at the end of `childrens` is done on purpose
 because `children` is already taken by mptt).
 
@@ -189,6 +192,50 @@ It may be wise to cache the output of `get_nodes`. For this you may need to writ
 dynamic content that the pickle module can't handle.
 
 If you want to display some static pages in the navigation ("login", for example) you can write your own "dummy" class that adheres to the conventions described above.
+
+Every CMS_NAVIGATION_EXTENDERS tuple can be added to one CMS page in the page advanced settings section in admin when editing that.
+
+The result is that every tuple is a group to be added to a parent page.
+
+If you need to add several urls to the menu to be added to different pages, you will need to dinamically create tuples for CMS_NAVIGATION_EXTENDERS.
+You can do that, putting a PROJECT_NAME="projectname" setting on your `projectname.settings.py`. Django-CMS will load everything will overwrite default settings with
+everything you put into a file `projectname.local_cms_settings.py` 
+
+Then you can put into that:
+
+	def get_navigation_extenders():
+	    from projectname.blog.models import Tag
+	    
+	    result = []
+	    for tag in Tag.objects.all():
+	        extender = ("projectname.blog.utils.get_node:%s" % cat.id, "Blog %s" % cat.name)
+	        result.append(extender)
+	    
+	    return result
+	
+	CMS_NAVIGATION_EXTENDERS = (get_navigation_extenders())
+
+the result will be a dynamically generated tuple for CMS_NAVIGATION_EXTENDERS like
+	
+	CMS_NAVIGATION_EXTENDERS = (('projectname.blog.utils.get_nodes:1', gettext('Blog Tag1')),('projectname.blog.utils.get_nodes:2', gettext('Blog Tag2')))
+
+The number after the : is the id of the tag to show.
+
+in `projectname.blog.utils.py` you put
+
+	from models import Tag
+	
+	
+	def get_node(request, oid):
+	    res = []
+	    cat = Tag.objects.get(id=oid)
+	    cat.childrens = []
+	    res.append(cat)
+	    return res
+	    
+fitting your needs.
+
+Now in your page admin you will have every tag. If you add a tag, it will be shown.
 
 Properties of Navigation Nodes in templates
 ----------------------------------------------
