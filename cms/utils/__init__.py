@@ -141,10 +141,22 @@ def get_extended_navigation_nodes(request, levels, ancestors, current_level, to_
     """
     discovers all navigation nodes from navigation extenders
     """    
+    try:
+        # If I pass one oid, I will select it
+        (path,oid) = path.split(":")
+    except:
+        # I don't need to select the id
+        pass
     func_name = path.split(".")[-1]
     ext = __import__(".".join(path.split(".")[:-1]),(),(),(func_name,))
     func = getattr(ext, func_name)
-    items = func(request)
+    
+    try:
+        items = func(request,oid)
+        
+    except: # Id is not set
+        items = func(request)
+        
     descendants = False
     for anc in ancestors:
         if hasattr(anc, 'selected'):

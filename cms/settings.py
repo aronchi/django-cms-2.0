@@ -115,3 +115,8 @@ CMS_MODERATOR = getattr(settings, 'CMS_MODERATOR', False)
 #if CMS_MODERATOR and not CMS_PERMISSION:
 #    raise ImproperlyConfigured('CMS Moderator requires permissions to be enabled')
 
+# Try to import customized settings
+try:
+   exec "from " + settings.PROJECT_NAME +".local_cms_settings import *"
+except:
+   pass
